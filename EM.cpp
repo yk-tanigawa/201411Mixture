@@ -279,7 +279,7 @@ ostream &operator<<(ostream &stream, parameter params){
 double NormalDistribution(vector<double> x, vector<double> mu, double sigma){
   int dim = (int)x.size() < (int)mu.size() ? (int)x.size() : (int)mu.size();
   x.resize(dim); mu.resize(dim);
-  double expterm = - (1.0 / 2.0) * norm(x - mu) * sigma * sigma;
+  double expterm = - (1.0 / 2.0) * norm(x - mu) / (sigma * sigma);
   return (1.0 / (pow(2 * M_PI, dim / 2.0 ) * sigma)) * exp(expterm);
 }
 
