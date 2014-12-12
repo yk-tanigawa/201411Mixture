@@ -14,11 +14,7 @@ class data;
 class params;
 class em;
 
-/*
- *
- * ここからデータの読み込み
- *
- */
+/* ここからデータの読み込み */
 
 class data{
   vector <string> head;
@@ -102,10 +98,12 @@ public:
      *  k   = #{ components }
      *  dim = #{ dimention } */
     pi_.resize(k, 1.0 / k); /* pi_k  = 1.0 / dim */
-    sigma_.resize(k, 0.5);    /* sigma^2_k = 0.5 */
+    sigma_.resize(k, 0.3);    /* sigma^2_k = 0.3 */
     mu_.resize(k); /* assign random values to mu */
     {
-      std::random_device rd; std::mt19937 mt(rd());
+      std::random_device rd;
+      std::mt19937 mt(0); /* DEBUG用にseedを固定 */
+      //std::mt19937 mt(rd());
       std::uniform_real_distribution<double> rand(0.0, 1.0);
       for(int i = 0; i < mu_.size(); ++i){
 	mu_.at(i).resize(dim);
@@ -113,7 +111,7 @@ public:
       }
     }
   }
-  int k(){ return (int)pi_.size(); } /* returns #{ components }*/
+  int k(){ return (int)pi_.size(); } /* returns #{ components } */
   int dim(){ return (int)mu_.at(0).size(); } /* returns dimention */
   vector<double> mu(int i){ return mu_.at(i); }
   void set_mu(int i, vector<double> mu_new){
@@ -205,13 +203,17 @@ public:
   }
   void estep(){
     for(int i = 0; i < data.size(); ++i){
-      double sum = 0;
+      double partition_i = 0;
       for(int z = 0; z < params.k(); ++z){	
-	w.at(z).at(i) = NormalDistribution(data.at(i), params.mu(z), params.sigma(z)) * params.pi(z);
-	sum += w.at(z).at(i);
+	w.at(z).at(i)
+	  = NormalDistribution(data.at(i),
+			       params.mu(z),
+			       params.sigma(z))
+	  * params.pi(z);
+	partition_i += w.at(z).at(i);
       }
       for(int z = 0; z < params.k(); ++z){	
-	w.at(z).at(i) /= sum;
+	w.at(z).at(i) /= partition_i;
       }
     }
   }
@@ -232,7 +234,9 @@ public:
       {
 	double sigma_new = 0;
 	for(int i = 0; i < data.size(); ++i){
-	  sigma_new += norm(data.at(i) - params.mu(z)) * w.at(z).at(i);
+	  sigma_new +=
+	    norm(data.at(i) - params.mu(z))
+	    * w.at(z).at(i);
 	}
 	sigma_new /= (params.dim() * N.at(z));
 	params.set_sigma(z, sqrt(sigma_new));
@@ -242,22 +246,23 @@ public:
   }
   void show_params_head(){
     params.export_params_head(cout);
-    //cout << params;
   }
   void show_params(){
     params.export_params(cout);
-    //cout << params;
   }
   double loglikelihood(){
-    double sum = 0;
+    double logsum = 0;
     for(int i = 0; i < data.size(); ++i){
-      double temp;
+      double sum = 0;
       for(int z = 0; z < params.k(); ++z){
-	temp += params.pi(z) * NormalDistribution(data.at(i), params.mu(z), params.sigma(z));
+	sum += params.pi(z)
+	  * NormalDistribution(data.at(i),
+			       params.mu(z),
+			       params.sigma(z));
       }
-      sum += log(temp);
+      logsum += log(sum);
     }
-    return sum;
+    return logsum;
   }
 };
 
@@ -266,15 +271,18 @@ int main(){
   data d = read_data((char *)"input/sample_mix.txt");
   parameter params(3);
   em em(d, params);
+
+#if 1
   cout << "n\t";
-  em.show_params_head();
+  //em.show_params_head();
   for(int i = 0; i < 10; ++i)
   {
     cout << i << "\t";
-    //cout << em.loglikelihood() << endl;
+    cout << em.loglikelihood() << endl;
     em.estep();
     em.mstep();
-    em.show_params();
+    //em.show_params();
   }
+  #endif
   return 0;
 }
