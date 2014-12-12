@@ -33,3 +33,6 @@ output/*
 
 # report file
 report/*
+
+# etc
+etc/*

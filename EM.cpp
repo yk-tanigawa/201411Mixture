@@ -4,6 +4,7 @@
 #include <vector>
 #include <random> /* require C++11 or later */
 #include <cmath>
+#include "my_vector.hpp" /* vector operation */
 
 #define DIM 2
 
@@ -12,124 +13,6 @@ using namespace std;
 class data;
 class params;
 class em;
-
-/* まずはベクトルに対する加算・減算・定数倍などを定義 */
-
-template <class T>
-std::vector<T>& operator+=(std::vector<T> &self,
-			   const std::vector<T> &other){
-  for(int i = 0; i < (int)self.size(); i++)
-    self[i] += other[i];
-  return self;
-}
-
-template <class T>
-std::vector<T> operator+(const std::vector<T> &self,
-                         const std::vector<T> &other){
-  std::vector<T> result = self;
-  result += other;
-  return result;
-}
-
-template <class T>
-std::vector<T>& operator-=(std::vector<T> &self,
-			   const std::vector<T> &other){
-  for(int i = 0; i < (int)self.size(); i++)
-    self[i] -= other[i];
-  return self;
-}
-
-template <class T>
-std::vector<T> operator-(const std::vector<T> &self,
-                         const std::vector<T> &other){
-  std::vector<T> result = self;
-  result -= other;
-  return result;
-}
-
-template <class T>
-std::vector<T>& operator*=(std::vector<T> &self, const T &mul){			   
-  for(int i = 0; i < (int)self.size(); i++)
-    self[i] *= mul;
-  return self;
-}
-
-template <class T>
-std::vector<T> operator*(const std::vector<T> &self,
-                         const T &mul){
-  std::vector<T> result = self;
-  result *= mul;
-  return result;
-}
-
-template <class T>
-std::vector<T> operator*(const T &mul, const std::vector<T> &self){                         
-  std::vector<T> result = self;
-  result *= mul;
-  return result;
-}
-
-template <class T>
-ostream &operator<<(ostream &stream, vector<T> vector){
-  for(int i = 0; i < (int)vector.size() - 1; i++){
-    stream << vector.at(i) << ", "; 
-  }
-  stream << vector.back() << endl;
-  return stream;
-}
-
-template <class T>
-ostream &operator<<(ostream &stream, vector< vector<T> > matrix){
-  for(int i = 0; i < (int)matrix.size(); i++){ stream << matrix.at(i); }
-  return stream;
-}
-
-template <class T>
-inline double Euclid_norm(vector<T> vec){
-  /* compute Euclid norm of a vector 'vec' */
-  double results = 0;
-  for(int i = 0; i < (int)vec.size(); ++i){
-    results += vec.at(i) * vec.at(i);
-  }
-  return sqrt(results);
-}
-
-template <class T>
-inline double sum(vector<T> vec){
-  double results = 0;
-  for(int i = 0; i < (int)vec.size(); ++i){
-    results += vec.at(i);
-  }
-  return results;
-}
-
-template <class T>
-double norm(vector<T> vec, int p = 2){
-  /* compute norm of a vector 'vec' */
-  if(p == 2){
-    return Euclid_norm(vec);
-  }else if(p == 1){
-    return sum(vec);
-  }else{
-    double results = 0;
-    for(int i = 0; i < (int)vec.size(); ++i){
-      results += pow(vec.at(i), p);
-    }
-    return pow(results, 1.0 / p);
-  }
-}
-
-template <class T>
-double inner_product(vector<T> v1, vector<T> v2){
-  /* compute inner product of two vectors v1, v2 */
-  double results = 0;
-  int minsize = (((int)v1.size() < (int)v2.size())
-		 ? (int)v1.size() : (int)v2.size());
-  for(int i = 0; i < minsize; ++i){
-    results += v1.at(i) * v2.at(i);
-  }
-  return results;
-}
 
 /*
  *
@@ -168,10 +51,11 @@ ostream &operator<<(ostream &stream, data dat){
 }
 
 inline data read_data(istream &ifs){
-  /* read data from a stream 
+  /* 
+   * read data from a stream 
    * - the first line of the data file is header line
    * - label of the variables are written in the header line.
-   * - the following line is the data.
+   * - the following lines are the body of data.
    */
   data input_data(DIM);
   for(int i = 0; i < input_data.dim(); i++){
@@ -229,8 +113,8 @@ public:
       }
     }
   }
-  int k(){ return pi_.size(); } /* returns #{ components }*/
-  int dim(){ return mu_.at(0).size(); } /* returns dimention */
+  int k(){ return (int)pi_.size(); } /* returns #{ components }*/
+  int dim(){ return (int)mu_.at(0).size(); } /* returns dimention */
   vector<double> mu(int i){ return mu_.at(i); }
   void set_mu(int i, vector<double> mu_new){
     mu_.at(i) =  mu_new;
@@ -250,6 +134,29 @@ public:
     }
     return determinant;
   }
+  ostream &export_params_head(ostream &stream){
+    for(int i = 0; i < k(); ++i){
+      stream << i << "_" << "p" << "\t" /*pi*/
+	     << i << "_" << "s" << "\t"; /* sigma */
+      for(int d = 0; d < dim(); ++d){
+	stream << i << "_" << "u" << d << "\t"; /* mu */
+      }
+    }
+    stream << endl;
+    return stream;
+  }
+  ostream &export_params(ostream &stream){
+    /* pi sigma mu*/
+    for(int i = 0; i < k(); ++i){
+      stream << pi_.at(i) << "\t"
+	     << sigma_.at(i) << "\t";
+      for(int d = 0; d < dim(); ++d){
+	stream << mu_.at(i).at(d) << "\t";
+      }
+    }
+    stream << endl;
+    return stream;
+  }
   friend ostream &operator<<(ostream &, parameter);
   friend vector<double> normal_distribution(data, params);
 };
@@ -257,15 +164,15 @@ public:
 ostream &operator<<(ostream &stream, parameter params){
   /* dump the contents of the struct parameter */
   stream << "number of components : " << params.k() << endl;
-  cout << "i|pi\tsigma\t<mu_>" << endl;
+  stream << "i|pi\tsigma\t<mu_>" << endl;
   for(int i = 0; i < params.k(); ++i){
-    cout << i << "|" << params.pi_.at(i) << "\t"
-	 << params.sigma_.at(i) << "\t<";
+    stream << i << "|" << params.pi_.at(i) << "\t"
+	   << params.sigma_.at(i) << "\t<";
     for(int d = 0; d < params.dim() - 1; ++d){
-      cout << params.mu_.at(i).at(d) << ", ";
+      stream << params.mu_.at(i).at(d) << ", ";
     }
-    cout << params.mu_.at(i).at(params.dim() - 1)
-	 << ">" << endl;
+    stream << params.mu_.at(i).at(params.dim() - 1)
+	   << ">" << endl;
   }
   return stream;
 }
@@ -333,6 +240,14 @@ public:
       params.set_pi(z, N.at(z) / data.size());
     }
   }
+  void show_params_head(){
+    params.export_params_head(cout);
+    //cout << params;
+  }
+  void show_params(){
+    params.export_params(cout);
+    //cout << params;
+  }
   double loglikelihood(){
     double sum = 0;
     for(int i = 0; i < data.size(); ++i){
@@ -351,12 +266,15 @@ int main(){
   data d = read_data((char *)"input/sample_mix.txt");
   parameter params(3);
   em em(d, params);
-  for(int i = 0; i < 100; ++i)
+  cout << "n\t";
+  em.show_params_head();
+  for(int i = 0; i < 10; ++i)
   {
     cout << i << "\t";
-    cout << em.loglikelihood() << endl;
+    //cout << em.loglikelihood() << endl;
     em.estep();
     em.mstep();
+    em.show_params();
   }
   return 0;
 }
