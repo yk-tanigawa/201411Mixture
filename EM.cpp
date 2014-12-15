@@ -203,7 +203,7 @@ public:
   }
   void estep(){
     for(int i = 0; i < data.size(); ++i){
-      double partition_i = 0;
+      double partition_i = 0;      
       for(int z = 0; z < params.k(); ++z){	
 	w.at(z).at(i)
 	  = NormalDistribution(data.at(i),
@@ -220,8 +220,10 @@ public:
   void mstep(){
     vector<double> N(params.k(), 0);
     for(int z = 0; z < params.k(); ++z){
-      for(int i = 0; i < data.size(); ++i){
-	N.at(z) += w.at(z).at(i);
+      {
+	for(int i = 0; i < data.size(); ++i){
+	  N.at(z) += w.at(z).at(i);
+	}
       }
       {
 	vector<double> mu_new(data.dim(), 0);
@@ -236,12 +238,15 @@ public:
 	for(int i = 0; i < data.size(); ++i){
 	  sigma_new +=
 	    norm(data.at(i) - params.mu(z))
+	    * norm(data.at(i) - params.mu(z))
 	    * w.at(z).at(i);
 	}
 	sigma_new /= (params.dim() * N.at(z));
 	params.set_sigma(z, sqrt(sigma_new));
       }
-      params.set_pi(z, N.at(z) / data.size());
+      {
+	params.set_pi(z, (N.at(z) / data.size()));
+      }
     }
   }
   void show_params_head(){
@@ -274,15 +279,16 @@ int main(){
 
 #if 1
   cout << "n\t";
-  //em.show_params_head();
+  em.show_params_head();
   for(int i = 0; i < 10; ++i)
   {
     cout << i << "\t";
-    cout << em.loglikelihood() << endl;
+    cerr << i << "\t";
+    cerr << em.loglikelihood() << endl;
     em.estep();
     em.mstep();
-    //em.show_params();
+    em.show_params();
   }
-  #endif
+#endif
   return 0;
 }

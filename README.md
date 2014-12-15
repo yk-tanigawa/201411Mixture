@@ -1,4 +1,5 @@
 201411Mixture
 =============
 
-MIxture model
+
+https://github.com/yk-tanigawa/201411Mixture
